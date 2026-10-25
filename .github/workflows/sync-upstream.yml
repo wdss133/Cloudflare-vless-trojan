@@ -32,20 +32,25 @@ jobs:
         run: |
           set -euo pipefail
           build() {
-            src="$1"; dst="$2"
+            src="$1"; dst="$2"; strip_node="$3"
             if [ ! -f "$src" ]; then echo "::error::missing $src"; exit 1; fi
             mkdir -p "$(dirname "$dst")"
-            python3 - "$src" "$dst" <<'PYEOF'
+            python3 - "$src" "$dst" "$strip_node" <<'PYEOF'
           import sys
-          src, dst = sys.argv[1], sys.argv[2]
+          src, dst, strip_node = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
           s = open(src, encoding="utf-8").read()
           s = s.replace('const proxyIPs = ["pyip.ygkkk.dpdns.org"];', 'const proxyIPs = [""];')
           assert 'const proxyIPs = [""];' in s, "proxyIP default changed upstream, aborting"
+          if strip_node:
+              # js-sha256 的 node 分支：esbuild 解析不了 require("crypto")，且边缘运行时没有 process
+              s = s.replace('var crypto = require("crypto");', 'var crypto = null;')
+              s = s.replace('var Buffer = require("buffer").Buffer;', 'var Buffer = null;')
+              assert 'require("crypto")' not in s, "require patch failed"
           open(dst, "w", encoding="utf-8").write(s)
           PYEOF
           }
-          build "Vless_workers_pages/_worker明.js"  "site-a/_worker.js"
-          build "Trojan_workers_pages/_worker明.js" "site-b/_worker.js"
+          build "Vless_workers_pages/_worker明.js"  "site-a/_worker.js" 0
+          build "Trojan_workers_pages/_worker明.js" "site-b/_worker.js" 1
 
       - name: Commit and push
         run: |
