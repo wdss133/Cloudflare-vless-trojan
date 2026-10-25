@@ -31,17 +31,21 @@ jobs:
       - name: Rebuild deploy copies (proxyIP forced empty)
         run: |
           set -euo pipefail
-          for pair in "Vless_workers_pages/_worker.js:deploy-vless/_worker.js" \
-                      "Trojan_workers_pages/_worker.js:deploy-trojan/_worker.js"; do
-            src="${pair%%:*}"
-            dst="${pair##*:}"
+          build() {
+            src="$1"; dst="$2"
+            if [ ! -f "$src" ]; then echo "::error::missing $src"; exit 1; fi
             mkdir -p "$(dirname "$dst")"
-            if ! grep -q 'const proxyIPs = \["pyip.ygkkk.dpdns.org"\];' "$src"; then
-              echo "::error::$src 里 proxyIP 默认值已变化，请人工确认后再同步"
-              exit 1
-            fi
-            sed 's/const proxyIPs = \["pyip.ygkkk.dpdns.org"\];/const proxyIPs = [""];/' "$src" > "$dst"
-          done
+            python3 - "$src" "$dst" <<'PYEOF'
+          import sys
+          src, dst = sys.argv[1], sys.argv[2]
+          s = open(src, encoding="utf-8").read()
+          s = s.replace('const proxyIPs = ["pyip.ygkkk.dpdns.org"];', 'const proxyIPs = [""];')
+          assert 'const proxyIPs = [""];' in s, "proxyIP default changed upstream, aborting"
+          open(dst, "w", encoding="utf-8").write(s)
+          PYEOF
+          }
+          build "Vless_workers_pages/_worker明.js"  "deploy-vless/_worker.js"
+          build "Trojan_workers_pages/_worker明.js" "deploy-trojan/_worker.js"
 
       - name: Commit and push
         run: |
