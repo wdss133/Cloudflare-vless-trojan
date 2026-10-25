@@ -22,13 +22,13 @@ jobs:
 
       - name: Merge upstream
         run: |
-          git config user.name "cf-sync-bot"
-          git config user.email "cf-sync-bot@users.noreply.github.com"
+          git config user.name "sync-bot"
+          git config user.email "sync-bot@users.noreply.github.com"
           git remote add upstream https://github.com/yonggekkk/Cloudflare-vless-trojan.git || true
           git fetch upstream main
           git merge --no-edit upstream/main
 
-      - name: Rebuild deploy copies (proxyIP forced empty)
+      - name: Rebuild site copies
         run: |
           set -euo pipefail
           build() {
@@ -44,8 +44,8 @@ jobs:
           open(dst, "w", encoding="utf-8").write(s)
           PYEOF
           }
-          build "Vless_workers_pages/_worker明.js"  "deploy-vless/_worker.js"
-          build "Trojan_workers_pages/_worker明.js" "deploy-trojan/_worker.js"
+          build "Vless_workers_pages/_worker明.js"  "site-a/_worker.js"
+          build "Trojan_workers_pages/_worker明.js" "site-b/_worker.js"
 
       - name: Commit and push
         run: |
