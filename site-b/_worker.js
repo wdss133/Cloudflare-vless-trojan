@@ -2081,8 +2081,8 @@ return `{
   };
 
   var nodeWrap = function (method, is224) {
-    var crypto = require("crypto");
-    var Buffer = require("buffer").Buffer;
+    var crypto = null;
+    var Buffer = null;
     var algorithm = is224 ? "sha224" : "sha256";
     var bufferFrom;
     if (Buffer.from && !root.JS_SHA256_NO_BUFFER_FROM) {
